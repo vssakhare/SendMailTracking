@@ -1,0 +1,19 @@
+<config>                  
+  
+    <actionhandlerclass Value="in.emp.handler.VendorHandler">
+        <uiactions>            
+            <uiaction>
+                <action-name>unsubscribe_message</action-name>
+                <success-page>/jsp/unsubscribe_message.jsp</success-page>
+                <error-page>/jsp/unsubscribe_message.jsp</error-page>
+            </uiaction>
+             <uiaction>
+         <action-name>unsubscribe_page</action-name>
+                <success-page>/jsp/unsubscribe_page.jsp</success-page>
+                <error-page>/jsp/unsubscribe_page.jsp</error-page>
+            </uiaction>
+        </uiactions>
+    </actionhandlerclass>
+
+ 
+</config> 

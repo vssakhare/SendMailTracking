@@ -1,0 +1,70 @@
+/* 
+    Document   : emp_ers_form_print
+    Created on : 27 Mar, 2017, 3:21:36 PM
+    Author     : Prajakta
+    Description:
+        Purpose of the stylesheet follows.
+*/
+
+root { 
+    display: block;
+    text-align: left;
+}
+
+#main_table {
+    width: 600px;
+    margin: 50px 50px 0px 50px;
+    text-align: left;
+}
+
+.head {
+    font-weight: 500;
+}
+
+.data {
+    font-weight: 900;
+}
+
+.separator {
+    width: 5px;
+}
+.separator2 {
+    width: 50px;
+}
+.row {
+    height: 25px;
+}
+
+#img_table {
+    border-color: black;
+    border : 2px;
+    margin: 0px;
+}
+
+#ward_table {
+    width: 300px;
+    margin: 0px 50px 50px 100px;
+    text-align: left;
+}
+
+#declaration {
+    width: 600px;
+    margin: 0px 0px 0px 50px;
+    text-align: left;
+}
+
+.sign_panel {
+    width: 800px;
+    margin: 0px 0px 0px 0px;
+}
+
+.line-separator {
+    text-align: center;
+    margin: 0px 0px 0px 50px;
+}
+
+#office_part {
+    width: 600px;
+    margin: 50px 50px 50px 50px;
+    text-align: left;
+}

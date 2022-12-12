@@ -1,0 +1,5 @@
+Vendor Name: ##VENDOR_NAME##.
+
+Mode of PAYMENT:##Mode of Pay##.
+
+Bank Details:##Bank Details##.

@@ -1,0 +1,537 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="report name" pageWidth="1080" pageHeight="1080" orientation="Landscape" columnWidth="1040" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20" uuid="0fc9d373-56b9-4b86-8db3-5bb14986b777">
+	<property name="ireport.zoom" value="2.0"/>
+	<property name="ireport.x" value="467"/>
+	<property name="ireport.y" value="139"/>
+	<parameter name="OFFICE_CODE" class="java.lang.String"/>
+	<parameter name="VENDOR_NUMBER" class="java.lang.String"/>
+	<parameter name="FROM_DATE" class="java.lang.String"/>
+	<parameter name="TO_DATE" class="java.lang.String"/>
+	<parameter name="PO_NUMBER" class="java.lang.String"/>
+	<parameter name="IMAGE_DIR" class="java.lang.String">
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<queryString>
+		<![CDATA[select row_number() over(order by zone) s_no,CASE WHEN zone IS NULL THEN '_GRAND TOTAL' ELSE zone END ZONE,
+       nvl(circle,' ') circle,
+       nvl(division,' ') division,
+       NVL(VENDOR_NAME,' ') VENDOR_NAME,
+       sum(p_tech) P_Tech,
+       sum(p_acc) P_Acc,
+       sum(p_cash) P_Cash,
+       sum(total) Total,
+  sum(submitted) V_submit,
+  sum(PAID)paid
+      from (select a.ZONE,
+               a.CIRCLE,
+               a.DIVISION,
+               A.VENDOR_NAME,
+                              count(case
+                       when a.INVOICE_STATUS = 'Pending With Technical'  THEN
+                        1
+                     END) P_Tech,
+
+               count(case
+                       when a.INVOICE_STATUS = 'Pending With Accounts'  THEN
+                        1
+                     END) P_Acc,
+
+               count(case
+                       when a.INVOICE_STATUS = 'Pending For Payment'  THEN
+                        1
+                     END) P_Cash,
+                NVL(SUM(
+               CASE WHEN  (a.INVOICE_STATUS = 'Pending With Technical' ) OR 
+                          (  a.INVOICE_STATUS = 'Pending With Accounts' ) OR
+                            (a.INVOICE_STATUS = 'Pending For Payment' ) THEN 1 END               
+               ),0) Total,
+             0 Submitted,
+             count(case
+               when a.INVOICE_STATUS = 'Paid'  Then
+               1
+               END)paid
+            from summary_status A 
+      ,ORGANISATION_MASTER ORG
+      where a.LOCATION = ORG.PLANT and   A.STATUS='Verified'
+     AND ORG.OFFICE_CODE IN (select h.organization_id from hr.hr_all_organization_units@DBLINK_HRMS h, 
+            hr.hr_all_organization_units@DBLINK_HRMS h1, hri.hri_org_hrchy_summary@DBLINK_HRMS hr 
+            where h.organization_id=hr.sub_organization_id and hr.org_structure_version_id='61' 
+            and hr.organization_id LIKE  $P{OFFICE_CODE} and h1.organization_id=hr.organization_id
+            and h.type in ('HO','ZON','CIR','DIV'))
+AND a.vendor_number LIKE $P{VENDOR_NUMBER}
+AND a.po_number LIKE $P{PO_NUMBER} 
+AND a.INVOICE_DATE  BETWEEN to_date($P{FROM_DATE},'dd-mon-yy') 
+AND to_date($P{TO_DATE},'dd-mon-yy')
+   
+
+         group by a.ZONE, a.CIRCLE, a.DIVISION,A.VENDOR_NAME
+        UNION
+        select ZONE,
+               '' circle,
+               '' DIVISION,
+               '' VENDOR_NAME,
+               sum(P_Tech),
+               sum(P_Acc),
+               sum(P_Cash),
+               sum(total) total,
+              SUM(SUBMITTED),
+              sum(paid)
+          from (select a.ZONE || ' TOTAL' zone,
+                       a.CIRCLE,
+                       a.DIVISION,
+                       A.VENDOR_NAME,
+                       count(case
+                               when a.INVOICE_STATUS = 'Pending With Technical'   THEN
+                                1
+                             END) P_Tech,
+
+                       count(case
+                               when a.INVOICE_STATUS = 'Pending With Accounts' 
+                               THEN 1
+                             END) P_Acc,
+                       count(case
+                               when a.INVOICE_STATUS = 'Pending For Payment'  THEN
+                                1
+                             END) P_Cash,
+                        NVL(SUM(
+               CASE WHEN  (a.INVOICE_STATUS = 'Pending With Technical' ) OR 
+                          (  a.INVOICE_STATUS = 'Pending With Accounts' ) OR
+                            (a.INVOICE_STATUS = 'Pending For Payment') THEN 1 END               
+               ),0)  Total,
+               0 SUBMITTED,
+               count(case
+               when  a.INVOICE_STATUS =  'Paid' Then
+               1
+               END)paid
+                  from summary_status A 
+    ,ORGANISATION_MASTER ORG
+    where A.LOCATION = ORG.PLANT and A.status='Verified'
+    AND ORG.OFFICE_CODE IN (select h.organization_id from hr.hr_all_organization_units@DBLINK_HRMS h, 
+            hr.hr_all_organization_units@DBLINK_HRMS h1, hri.hri_org_hrchy_summary@DBLINK_HRMS hr 
+            where h.organization_id=hr.sub_organization_id and hr.org_structure_version_id='61' 
+            and hr.organization_id LIKE  $P{OFFICE_CODE} and h1.organization_id=hr.organization_id
+            and h.type in ('HO','ZON','CIR','DIV'))
+AND a.vendor_number LIKE $P{VENDOR_NUMBER}
+AND a.po_number LIKE $P{PO_NUMBER} 
+AND a.INVOICE_DATE  BETWEEN to_date($P{FROM_DATE},'dd-mon-yy') 
+AND to_date($P{TO_DATE},'dd-mon-yy')
+   
+                 group by a.ZONE, a.CIRCLE, a.DIVISION,A.VENDOR_NAME)
+            group by ROLLUP(ZONE)
+UNION
+select ZONE,
+               '' circle,
+               '' DIVISION,
+               '' VENDOR_NAME,
+               sum(P_Tech),
+               sum(P_Acc),
+               sum(P_Cash),
+               (sum(P_Tech) + sum(P_Acc) + sum(P_Cash) + sum(paid)) total,
+               SUM(SUBMITTED),
+               sum(paid) from
+(select ZONE||' TOTAL' zone, CIRCLE, DIVISION, A.VENDOR_NAME,0 P_Tech, 0 P_Acc, 0 P_Cash, 0 Total, count(case when A.status='Verified' then 1 end) Submitted,
+0 paid FROM summary_status A  ,ORGANISATION_MASTER ORG
+    where a.LOCATION = ORG.PLANT and A.status='Verified'
+     AND ORG.OFFICE_CODE IN (select h.organization_id from hr.hr_all_organization_units@DBLINK_HRMS h, 
+            hr.hr_all_organization_units@DBLINK_HRMS h1, hri.hri_org_hrchy_summary@DBLINK_HRMS hr 
+            where h.organization_id=hr.sub_organization_id and hr.org_structure_version_id='61' 
+            and hr.organization_id LIKE  $P{OFFICE_CODE} and h1.organization_id=hr.organization_id
+            and h.type in ('HO','ZON','CIR','DIV'))
+AND a.vendor_number LIKE $P{VENDOR_NUMBER}
+AND a.po_number LIKE $P{PO_NUMBER} 
+AND a.INVOICE_DATE  BETWEEN to_date($P{FROM_DATE},'dd-mon-yy') 
+AND to_date($P{TO_DATE},'dd-mon-yy')
+group by ZONE,CIRCLE,DIVISION,A.VENDOR_NAME)
+group by ROLLUP(ZONE)
+UNION
+select ZONE zone, CIRCLE, DIVISION, A.VENDOR_NAME,0 P_Tech, 0 P_Acc, 0 P_Cash, 0 Total, count(case when A.status='Verified' then 1 end) Submitted,0 paid 
+FROM summary_status  A,ORGANISATION_MASTER ORG
+    where a.LOCATION = ORG.PLANT and A.status='Verified'
+    AND ORG.OFFICE_CODE IN (select h.organization_id from hr.hr_all_organization_units@DBLINK_HRMS h, 
+            hr.hr_all_organization_units@DBLINK_HRMS h1, hri.hri_org_hrchy_summary@DBLINK_HRMS hr 
+            where h.organization_id=hr.sub_organization_id and hr.org_structure_version_id='61' 
+            and hr.organization_id LIKE  $P{OFFICE_CODE} and h1.organization_id=hr.organization_id
+            and h.type in ('HO','ZON','CIR','DIV'))
+AND a.vendor_number LIKE $P{VENDOR_NUMBER}
+AND a.po_number LIKE $P{PO_NUMBER} 
+AND a.INVOICE_DATE  BETWEEN to_date($P{FROM_DATE},'dd-mon-yy') 
+AND to_date($P{TO_DATE},'dd-mon-yy')
+group by ZONE,CIRCLE,DIVISION,A.VENDOR_NAME
+)
+GROUP BY ZONE,circle,DIVISION,VENDOR_NAME
+ORDER BY ZONE,circle,DIVISION]]>
+	</queryString>
+	<field name="S_NO" class="java.math.BigDecimal"/>
+	<field name="ZONE" class="java.lang.String"/>
+	<field name="CIRCLE" class="java.lang.String"/>
+	<field name="DIVISION" class="java.lang.String"/>
+	<field name="VENDOR_NAME" class="java.lang.String"/>
+	<field name="P_TECH" class="java.math.BigDecimal"/>
+	<field name="P_ACC" class="java.math.BigDecimal"/>
+	<field name="P_CASH" class="java.math.BigDecimal"/>
+	<field name="TOTAL" class="java.math.BigDecimal"/>
+	<field name="V_SUBMIT" class="java.math.BigDecimal"/>
+	<field name="PAID" class="java.math.BigDecimal"/>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<pageHeader>
+		<band height="100">
+			<staticText>
+				<reportElement x="407" y="20" width="239" height="20" uuid="a27bdd35-d52c-45f4-9ee2-2d491b6a6e02"/>
+				<textElement>
+					<font size="14" isBold="true"/>
+				</textElement>
+				<text><![CDATA[ INVOICE STATISTICS REPORT]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="620" y="80" width="37" height="20" uuid="0f345af1-8ae7-46ea-9ee8-8bd23e94496a"/>
+				<textElement textAlignment="Center" verticalAlignment="Bottom">
+					<font size="12" isBold="true"/>
+				</textElement>
+				<text><![CDATA[DATE:]]></text>
+			</staticText>
+			<textField pattern="dd/MM/yyyy">
+				<reportElement x="657" y="80" width="100" height="20" uuid="b6d544f4-91b2-4c8a-9030-176406f26049"/>
+				<textElement textAlignment="Left" verticalAlignment="Bottom">
+					<font size="12" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[new java.util.Date()]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="324" y="0" width="418" height="20" uuid="05ddd587-e42e-42ac-ac19-13ffb53ac1b9"/>
+				<textElement>
+					<font size="14" isBold="true"/>
+				</textElement>
+				<text><![CDATA[MAHARASHTRA STATE ELECTRICITY DISTRIBUTION CO.LTD]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="526" y="40" width="71" height="20" uuid="9c484907-8da1-4084-bd5d-3dbc9963f550"/>
+				<textElement verticalAlignment="Bottom">
+					<font size="12" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{FROM_DATE}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="620" y="40" width="100" height="20" uuid="9808673e-400c-4124-8eb5-7553a4f133d1"/>
+				<textElement verticalAlignment="Bottom">
+					<font size="12" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{TO_DATE}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="345" y="40" width="181" height="20" uuid="c0bcc9a7-79bd-48e0-bb61-0e5e9255a98f"/>
+				<textElement verticalAlignment="Bottom">
+					<font size="12" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Statistics report for the period :]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="597" y="40" width="23" height="20" uuid="863394e9-a5ea-4c8f-a7bf-e97b2dfbdeab"/>
+				<textElement verticalAlignment="Bottom">
+					<font size="12" isBold="true"/>
+				</textElement>
+				<text><![CDATA[TO]]></text>
+			</staticText>
+		</band>
+	</pageHeader>
+	<columnHeader>
+		<band height="50">
+			<staticText>
+				<reportElement x="152" y="0" width="59" height="50" uuid="b81e8a8f-c457-40b7-8f48-284eb5a58c8d"/>
+				<box topPadding="1" leftPadding="1" bottomPadding="1" rightPadding="1">
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Bottom">
+					<font size="11" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Zone]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="211" y="0" width="68" height="50" uuid="62cc15be-485f-4581-9ac8-506645d2c406"/>
+				<box topPadding="1" leftPadding="1" bottomPadding="1" rightPadding="1">
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Bottom">
+					<font size="11" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Circle]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="279" y="0" width="70" height="50" uuid="1739fa63-e808-4003-a3bd-787ebd4182a1"/>
+				<box topPadding="1" leftPadding="1" bottomPadding="1" rightPadding="1">
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Bottom">
+					<font size="11" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Division]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="349" y="0" width="91" height="50" uuid="cd7fd3f8-cbdb-49c9-8a7e-4684b42dcb45"/>
+				<box topPadding="1" leftPadding="1" bottomPadding="1" rightPadding="1">
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Bottom">
+					<font size="11" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Vendor Invoices
+ submitted]]></text>
+			</staticText>
+			<staticText>
+				<reportElement isPrintRepeatedValues="false" x="440" y="0" width="95" height="50" isPrintInFirstWholeBand="true" uuid="20435f5d-1913-4780-8003-b1bb5e1b70fd"/>
+				<box topPadding="1" leftPadding="1" bottomPadding="1" rightPadding="1">
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Bottom">
+					<font size="11" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Pending with technical]]></text>
+			</staticText>
+			<staticText>
+				<reportElement isPrintRepeatedValues="false" x="536" y="0" width="95" height="50" isPrintInFirstWholeBand="true" uuid="e36f8ad6-dd56-4a73-bc95-734a0cb66ae5"/>
+				<box topPadding="1" leftPadding="1" bottomPadding="1" rightPadding="1">
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Bottom">
+					<font size="11" isBold="true"/>
+				</textElement>
+				<text><![CDATA[ Pending with accounts]]></text>
+			</staticText>
+			<staticText>
+				<reportElement isPrintRepeatedValues="false" x="631" y="0" width="67" height="50" isPrintInFirstWholeBand="true" uuid="1045f49d-7ef1-4f97-ab49-816414a5e605"/>
+				<box topPadding="1" leftPadding="1" bottomPadding="1" rightPadding="1">
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Bottom">
+					<font size="11" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Payment Pending]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="698" y="0" width="48" height="50" uuid="bd314240-d1bb-466f-af77-da9bebea5cd2"/>
+				<box topPadding="1" leftPadding="1" bottomPadding="1" rightPadding="1">
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Bottom">
+					<font size="11" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Paid]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="108" y="0" width="44" height="50" uuid="cd5f442e-74ae-4fa0-8ff3-4449500dc020"/>
+				<box topPadding="1" leftPadding="1" bottomPadding="1" rightPadding="1">
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Bottom">
+					<font size="12" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Sr No]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="746" y="0" width="48" height="50" uuid="afc60c72-95cc-4390-83b7-9c5ea32440c0"/>
+				<box topPadding="1" leftPadding="1" bottomPadding="1" rightPadding="1">
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Bottom">
+					<font size="11" isBold="true"/>
+				</textElement>
+				<text><![CDATA[TOTAL]]></text>
+			</staticText>
+		</band>
+	</columnHeader>
+	<detail>
+		<band height="78" splitType="Stretch">
+			<textField>
+				<reportElement x="536" y="0" width="95" height="78" uuid="15ee958c-a1c0-48df-8423-6c4f7090a193"/>
+				<box topPadding="1" leftPadding="1" bottomPadding="1" rightPadding="1">
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"/>
+				<textFieldExpression><![CDATA[$F{P_ACC}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="631" y="0" width="67" height="78" uuid="ba4ed4e5-8924-441f-9dea-b57b143a1061"/>
+				<box topPadding="1" leftPadding="1" bottomPadding="1" rightPadding="1">
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"/>
+				<textFieldExpression><![CDATA[$F{P_CASH}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="440" y="0" width="95" height="78" uuid="e3550f3a-6c2e-4dfa-9a66-8ab851017218"/>
+				<box topPadding="1" leftPadding="1" bottomPadding="1" rightPadding="1">
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"/>
+				<textFieldExpression><![CDATA[$F{P_TECH}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="211" y="0" width="68" height="78" uuid="70c4a08a-f638-424e-a057-e9f54502484f"/>
+				<box topPadding="1" leftPadding="1" bottomPadding="1" rightPadding="1">
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"/>
+				<textFieldExpression><![CDATA[$F{CIRCLE}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="279" y="0" width="70" height="78" uuid="04a598bb-b4c6-45e3-9aa6-2e2ca6a5c396"/>
+				<box topPadding="1" leftPadding="1" bottomPadding="1" rightPadding="1">
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"/>
+				<textFieldExpression><![CDATA[$F{DIVISION}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="698" y="0" width="48" height="78" uuid="c6d22036-1d47-4891-bd99-dcd100a1f66f"/>
+				<box topPadding="1" leftPadding="1" bottomPadding="1" rightPadding="1">
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"/>
+				<textFieldExpression><![CDATA[$F{PAID}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="349" y="0" width="91" height="78" uuid="c238cf49-7d3c-45d5-a45f-70b6c6cfdc82"/>
+				<box topPadding="1" leftPadding="1" bottomPadding="1" rightPadding="1">
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"/>
+				<textFieldExpression><![CDATA[$F{V_SUBMIT}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="152" y="0" width="59" height="78" uuid="9a763b8a-bd94-4ed7-8f3b-c6feac1d2a0e"/>
+				<box topPadding="1" leftPadding="1" bottomPadding="1" rightPadding="1">
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"/>
+				<textFieldExpression><![CDATA[$F{ZONE}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="108" y="0" width="44" height="78" uuid="12efdb95-446a-4e5b-89c0-5e212d760f45"/>
+				<box topPadding="1" leftPadding="1" bottomPadding="1" rightPadding="1">
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="11"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{S_NO}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="746" y="0" width="48" height="78" uuid="fe58b016-02cc-41af-a514-3d52bfe0f3a8"/>
+				<box topPadding="1" leftPadding="1" bottomPadding="1" rightPadding="1">
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"/>
+				<textFieldExpression><![CDATA[$F{TOTAL}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<columnFooter>
+		<band splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band height="54" splitType="Stretch">
+			<textField>
+				<reportElement x="666" y="14" width="80" height="20" uuid="dd4a6b5d-e294-4455-ac40-c004a789dbf8"/>
+				<textElement textAlignment="Right">
+					<font isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Page "+$V{PAGE_NUMBER}+" of"]]></textFieldExpression>
+			</textField>
+			<textField evaluationTime="Report">
+				<reportElement x="746" y="14" width="40" height="20" uuid="03cd31a7-72c1-4a22-86c4-46fda1513f1b"/>
+				<textElement>
+					<font isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[" " + $V{PAGE_NUMBER}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="108" y="14" width="201" height="20" uuid="a6b2709c-71fd-4e03-a09d-5d998bfacdd4"/>
+				<textElement>
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[This is Electronically generated report]]></text>
+			</staticText>
+		</band>
+	</pageFooter>
+</jasperReport>
