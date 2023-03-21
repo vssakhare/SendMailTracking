@@ -13,6 +13,7 @@ import com.jcraft.jsch.Session;
 import com.jcraft.jsch.SftpException;
 import in.emp.vendor.VendorDelegate;
 import in.emp.vendor.bean.MailStatusBean;
+import in.emp.vendor.bean.VendorCommMailLogBean;
 import in.emp.vendor.manager.VendorManager;
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -26,6 +27,8 @@ import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Properties;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpSession;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
@@ -44,6 +47,7 @@ public class ReadMailVendor {
         JSch jsch = new JSch();
         Session session = null;
         int targetSize = 900;
+        String sftpFile ="";
         try{
         session = jsch.getSession("vptserp", "ftp-vpts-erp.mahadiscom.in", 22);
         final Properties config = new Properties();
@@ -55,7 +59,7 @@ public class ReadMailVendor {
         channel.connect();
         ChannelSftp sftpChannel = (ChannelSftp) channel;
         Calendar cal = Calendar.getInstance();
-        cal.add(Calendar.DATE, -1);
+        cal.add(Calendar.DATE, -3);
           String sapTomailFullFilePath = new SimpleDateFormat("yyyyMMdd'.txt'").format(cal.getTime());
         System.out.println("/data/VPTS/VENDOR_PAYMENT_MAIL_" + sapTomailFullFilePath);
         InputStream stream = sftpChannel.get("/data/VPTS/VENDOR_PAYMENT_MAIL_" + sapTomailFullFilePath);
@@ -151,12 +155,19 @@ public class ReadMailVendor {
                                 } else if(!(textLine.startsWith("Dear Sir")||textLine.startsWith("Billing Detail :")||textLine.startsWith("Regards")||textLine.startsWith("Note:")))
                                             fb.getBillingDetails().append(textLine).append("\n");
         } 
+               int x=0;
                 for( MailStatusBean mailbean : list ){
-            
-        SendMailVendor v=new SendMailVendor();
-            v.SendMail(mailbean);
+           
                     
+                    
+                    
+        SendMailVendor v=new SendMailVendor();
+       System.out.println(  "BIll No - " + mailbean.getRefOrderNo());
+            v.SendMail(mailbean);
+                     x=x+1;
                 }
+                
+                System.out.println( x +" mails sent successfully...");  
          sftpChannel.cd(SFTPPROCESSEDDIR);
             for (String folder : folders) {
     if (folder.length() > 0 && !folder.contains(".")) {
@@ -174,15 +185,18 @@ public class ReadMailVendor {
   }
             
     sftpChannel.rename("/data/VPTS/"+FileName, SFTPPROCESSEDDIR+"/"+FileName);
+    
+    
+    sftpFile=FileName;
                  }catch (IOException io) {
                  sftpChannel.rename("/data/VPTS/"+FileName, SFTPERRORDIR+"/"+FileName); 
-                System.out.println("Exception occurred during reading file from SFTP server due to " + io.getMessage());
+                System.out.println("Exception occurred during reading file " + FileName +" from SFTP server due to " + io.getMessage());
                logger.log(Level.WARN, "ReadPOStatus :: Exception :: " + io);
                io.getMessage();
 
             } catch (Exception e) {
                  sftpChannel.rename("/data/VPTS/"+FileName, SFTPERRORDIR+"/"+FileName); 
-                System.out.println("Exception occurred during reading file from SFTP server on line number "+ i+ " and  column number "+ e.getMessage());
+                System.out.println("Exception occurred during reading file " + FileName +" from SFTP server on line number "+ i+ " and  column number "+ e.getMessage());
                logger.log(Level.WARN, "ReadPOStatus :: Exception :: " + e);
                e.getMessage();
 
@@ -192,14 +206,18 @@ public class ReadMailVendor {
             session.disconnect();
         } catch (JSchException e) {
             logger.log(Level.WARN, "ReadMailVendor :: Exception :: " + e);
-            System.out.println("exception while reading file from ftp JSCH");
+            System.out.println("exception while reading file  " + sftpFile +"  from ftp JSCH");
           //  e.printStackTrace();
         } catch (SftpException e) {
             logger.log(Level.WARN, "ReadMailVendor :: Exception :: " + e);
-            System.out.println("exception while reading file from ftp SFTP");
+            System.out.println("exception while reading file " + sftpFile +" from ftp SFTP");
            // e.printStackTrace();
         }
 
     }
+    
+    
+    
+  
 }
 

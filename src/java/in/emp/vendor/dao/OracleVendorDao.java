@@ -16,10 +16,12 @@ import in.emp.dao.BaseDao;
 import in.emp.dao.QueryHelper;
 import in.emp.vendor.bean.MailStatusBean;
 import in.emp.vendor.bean.VendorBean;
+import in.emp.vendor.bean.VendorCommMailLogBean;
 import in.emp.vendor.bean.VendorInputBean;
 import in.emp.vendor.bean.VendorStatuBean;
 import in.emp.vendor.dao.helper.GetInvalidMailListQueryHelper;
 import in.emp.vendor.dao.helper.GetMailTrackerListQueryHelper;
+import in.emp.vendor.dao.helper.VendorMailLogTxnHelper;
 import in.emp.vendor.dao.helper.VendorMailNotSendTxnHelper;
 import in.emp.vendor.dao.helper.VendorMailSendTxnHelper;
 import in.emp.vendor.dao.helper.checkUnsubscribeListQueryHelper;
@@ -114,6 +116,25 @@ return vendorBeanObj;
             throw ex;
         }
 return mailbean;
-    }          
+    }  
+    
+    
+    public VendorCommMailLogBean saveVendorCommLog(VendorCommMailLogBean vendorMailLogBean)throws Exception
+     {
+         try {
+            logger.log(Level.INFO, "OracleVendorDao ::: saveLFeeTypeDtlsForm() :: method called ::    ");
+            if(vendorMailLogBean.getCommLogId() == null){
+                vendorMailLogBean = (VendorCommMailLogBean) createObject(new VendorMailLogTxnHelper(vendorMailLogBean));
+            }else{
+                updateObject(new VendorMailLogTxnHelper(vendorMailLogBean));
+            }
+        } catch (Exception ex) {
+            logger.log(Level.ERROR, "OracleVendorDao ::: saveLFeeTypeDtlsForm() :: Exception :: " + ex);
+            throw ex;
+        }
+        return vendorMailLogBean;
+     }
+    
+    
 }
  

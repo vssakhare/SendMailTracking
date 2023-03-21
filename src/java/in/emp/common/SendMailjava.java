@@ -5,6 +5,11 @@
  */
 package in.emp.common;
 
+import in.emp.util.ApplicationUtils;
+import in.emp.vendor.VendorDelegate;
+import in.emp.vendor.bean.VendorBean;
+import in.emp.vendor.bean.VendorCommMailLogBean;
+import in.emp.vendor.manager.VendorManager;
 import java.util.Properties;
 import javax.mail.Message;
 import javax.mail.MessagingException;
@@ -13,13 +18,17 @@ import javax.mail.Session;
 import javax.mail.Transport;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpSession;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
 
 /**
  *
  * @author Pooja Jadhav
  */
 public class SendMailjava {
-
+ private static Logger logger = Logger.getLogger(SendMailjava.class);
  public static int sendmail(String to,String Subject,String mailmessage) {  
   
   String host="bulkmail.mahadiscom.in";  
@@ -57,9 +66,9 @@ final String password="PF$e49&%w7";
      //message.setText(mailmessage);  
       message.setContent(mailmessage, "text/html");  
     //send the message  
-     Transport.send(message);  
+    // Transport.send(message);  
   
-     System.out.println("mail sent successfully...");  
+     System.out.println("mail sent successfully to " + to);  
    return 1;
      } catch (MessagingException e) {
          e.printStackTrace();
@@ -67,6 +76,9 @@ final String password="PF$e49&%w7";
      }  
  }  
  
-
+ 
+ 
  
 }
+
+ 

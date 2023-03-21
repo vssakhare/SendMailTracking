@@ -7,6 +7,7 @@ package in.emp.vendor.dao;
 //-- java imports
 import in.emp.vendor.bean.MailStatusBean;
 import in.emp.vendor.bean.VendorBean;
+import in.emp.vendor.bean.VendorCommMailLogBean;
 import in.emp.vendor.bean.VendorInputBean;
 import java.util.LinkedList;
 
@@ -25,5 +26,7 @@ public interface VendorDao {
     public VendorBean setUnsubscribeList(VendorBean vendorBeanObj) throws Exception;
 
     public MailStatusBean checkUnsubscribeList(MailStatusBean mailbean) throws Exception;
+    
+     public VendorCommMailLogBean saveVendorCommLog(VendorCommMailLogBean vendorMailLogBean) throws Exception;
 
 }

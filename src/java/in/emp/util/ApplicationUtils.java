@@ -77,7 +77,7 @@ public class ApplicationUtils {
             if (dataSource == null) {
                 System.out.println("DS look up :-(");
             } else {
-                System.out.println("ApplicationConstants.CONN_POOL_NAME");
+                System.out.println(ApplicationConstants.CONN_POOL_NAME);
                 System.out.println("DS look up :-)");
             }
 

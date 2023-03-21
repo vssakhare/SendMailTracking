@@ -8,9 +8,11 @@ package in.emp.vendor.manager;
 import in.emp.vendor.VendorDelegate;
 import in.emp.vendor.bean.MailStatusBean;
 import in.emp.vendor.bean.VendorBean;
+import in.emp.vendor.bean.VendorCommMailLogBean;
 import in.emp.vendor.bean.VendorInputBean;
 import in.emp.vendor.dao.OracleVendorDao;
 import in.emp.vendor.dao.VendorDao;
+import in.emp.vendor.dao.helper.VendorMailLogTxnHelper;
 import java.util.LinkedList;
 
 import org.apache.log4j.Level;
@@ -82,6 +84,22 @@ public class VendorManager implements VendorDelegate {
         }
           return vendorBeanObj;
      }
+     
+     
+      public VendorCommMailLogBean saveVendorCommLog(VendorCommMailLogBean vendorMailLogBean)
+     {VendorDao vendorDaoObj = new OracleVendorDao();
+         try {
+           logger.log(Level.INFO, " VendorManager :: saveVendorCommLog() :: method called");
+           vendorMailLogBean=vendorDaoObj.saveVendorCommLog(vendorMailLogBean);
+        } catch (Exception ex) {
+            logger.log(Level.ERROR, "VendorManager ::: saveLFeeTypeDtlsForm() :: Exception :: " + ex);
+        
+        }
+        return vendorMailLogBean;
+     }
+    
+     
+     
     public  MailStatusBean checkUnsubscribeList(MailStatusBean mailbean){
          VendorDao vendorDaoObj = new OracleVendorDao();
           try {

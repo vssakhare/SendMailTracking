@@ -6,10 +6,13 @@ package in.emp.common;
 
 import in.emp.vendor.VendorDelegate;
 import in.emp.vendor.bean.MailStatusBean;
+import in.emp.vendor.bean.VendorCommMailLogBean;
 import in.emp.vendor.bean.VendorInputBean;
 import in.emp.vendor.manager.VendorManager;
 import java.sql.Connection;
 import java.util.LinkedList;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpSession;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
@@ -99,22 +102,42 @@ str.append("<br><br></p>");
 
  InvalidfileList= vendorMgrObj.getInvalidMailTrackerList(VendorMailId);
  //  System.out.println(InvalidfileList.isEmpty()); 
+
    if(InvalidfileList.isEmpty()){
+       
+         VendorCommMailLogBean vendorMailLogBean = saveMailLog(str.toString(),mailbean);
+        try{
+          
        int success=SendMailjava.sendmail(VendorMailId,mailbean.getSubject(),str.toString());
            //  int success=SendMail.sendmail(VendorMailId,Subject,MailMessage,v.getVendorName()+".pdf","D:/"+v.getVendorName()+".pdf");
                   // PdfGeneration.generatePdf();
               if(success==1)
               {
                   vendorMgrObj.VendorMailSendTxnHelper(mailbean);
-                  
+                  vendorMailLogBean.setIsMailSent("Y");
+                  vendorMailLogBean=updateMailLog(vendorMailLogBean);
+                 
               }
+              else{
+                  vendorMailLogBean.setIsMailSent("N");
+                    vendorMailLogBean=updateMailLog(vendorMailLogBean);
+              }
+              
+              }catch(Exception e){
+                    vendorMailLogBean.setIsMailSent("N");
+                    vendorMailLogBean.setError(e.getMessage());
+                    vendorMailLogBean=updateMailLog(vendorMailLogBean);
+           }
    }else{
          vendorMgrObj.VendorMailNotSendTxnHelper(mailbean);
    }
+   
 //}//uncomment for unsubscribe option
            }
              catch(Exception e){
                  logger.log(Level.ERROR, "SendMAIL :: run() :: Exception .. " + e.getMessage());
+                 
+                 
                  e.printStackTrace();
              }
              
@@ -126,6 +149,70 @@ str.append("<br><br></p>");
             ex.printStackTrace();
         }
 }
+    
+      
+    private  VendorCommMailLogBean saveMailLog(String mailmessage, MailStatusBean mailbean) throws Exception {
+       // String sReturnPage = ApplicationConstants.UNSUBSCRIBE_MESSAGE;
+       
+        VendorCommMailLogBean vendorMailLogBean = new VendorCommMailLogBean();
+        VendorDelegate vendorMgrObj = new VendorManager();
+
+        //HttpSession session = request.getSession();
+
+        try {
+            logger.log(Level.INFO, "SendMailJava :: saveMailLog() :: method called :: ");
+            vendorMailLogBean.setSubject(mailbean.getSubject());
+            vendorMailLogBean.setHost("bulkmail.mahadiscom.in");
+            vendorMailLogBean.setMessageBody(mailmessage);
+            vendorMailLogBean.setRecipients(mailbean.getEmail());
+            vendorMailLogBean.setIsMailSent("N");
+            vendorMailLogBean.setBillNo(mailbean.getRefOrderNo());
+            vendorMailLogBean.setVendorNumber(mailbean.getVendorNumber());
+            vendorMailLogBean = vendorMgrObj.saveVendorCommLog(vendorMailLogBean);
+
+           
+
+        } catch (Exception ex) {
+            logger.log(Level.ERROR, "VendorHandler :: getUnsubscribe_Message() :: Exception :: " + ex);
+            //ex.printStackTrace();
+        }
+        return vendorMailLogBean;
+    }
+    
+    
+    private  VendorCommMailLogBean updateMailLog(VendorCommMailLogBean vendorMailLogBean) throws Exception {
+       // String sReturnPage = ApplicationConstants.UNSUBSCRIBE_MESSAGE;
+       
+      
+        VendorDelegate vendorMgrObj = new VendorManager();
+
+        //HttpSession session = request.getSession();
+
+        try {
+            logger.log(Level.INFO, "SendMailJava :: saveMailLog() :: method called :: ");
+          
+            vendorMailLogBean = vendorMgrObj.saveVendorCommLog(vendorMailLogBean);
+
+           
+
+        } catch (Exception ex) {
+            logger.log(Level.ERROR, "VendorHandler :: getUnsubscribe_Message() :: Exception :: " + ex);
+            //ex.printStackTrace();
+        }
+        return vendorMailLogBean;
+    }
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
          }
 
     
